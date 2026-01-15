@@ -443,3 +443,162 @@ export const loginUsingPhoneOtpVerify = catchAsyncError(
 );
 
 
+/* ============================================================
+   4️⃣ FORGOT PASSWORD — REQUEST OTP (EMAIL)
+============================================================ */
+/* ============================================================
+   FORGOT PASSWORD — REQUEST OTP (EMAIL)
+============================================================ */
+export const forgotPasswordEmailOtpRequest = catchAsyncError(
+  async (req, res, next) => {
+    const { email } = req.body;
+
+    if (!email) {
+      return next(
+        new ErrorHandler(
+          "Please enter your registered email address.",
+          400
+        )
+      );
+    }
+
+    const superAdmin = await SuperAdmin.findOne({
+      where: { email, is_active: true },
+    });
+
+    // Always return same response (security)
+    if (!superAdmin) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "If an account exists with this email, a verification code has been sent.",
+        otp_expires_in_seconds: 300,
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresInSeconds = 300;
+    const expiresAt = Date.now() + expiresInSeconds * 1000;
+
+    await redis.set(
+      `forgot_pwd_otp:${superAdmin.public_user_id}`,
+      JSON.stringify({
+        otp,
+        expires_at: expiresAt,
+      }),
+      { EX: expiresInSeconds }
+    );
+
+    await sendEmail({
+      email: superAdmin.email,
+      subject: "CALDOST Password Reset Verification Code",
+      template: "forgotPasswordOtp.ejs",
+      data: {
+        name: superAdmin.name,
+        otp,
+        expires_in_minutes: 5,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message:
+        "If an account exists with this email, a verification code has been sent.",
+      otp_expires_in_seconds: expiresInSeconds,
+    });
+  }
+);
+
+
+
+/* ============================================================
+   FORGOT PASSWORD — VERIFY OTP & RESET PASSWORD
+============================================================ */
+export const forgotPasswordEmailOtpVerify = catchAsyncError(
+  async (req, res, next) => {
+    const { email, otp, new_password } = req.body;
+
+    if (!email || !otp || !new_password) {
+      return next(
+        new ErrorHandler(
+          "Please provide all required details to reset your password.",
+          400
+        )
+      );
+    }
+
+    if (new_password.length < 8) {
+      return next(
+        new ErrorHandler(
+          "Your new password must be at least 8 characters long.",
+          400
+        )
+      );
+    }
+
+    const superAdmin = await SuperAdmin.findOne({
+      where: { email, is_active: true },
+    });
+
+    if (!superAdmin) {
+      return next(
+        new ErrorHandler(
+          "The password reset session has expired. Please try again.",
+          400
+        )
+      );
+    }
+
+    const redisKey = `forgot_pwd_otp:${superAdmin.public_user_id}`;
+    const stored = await redis.get(redisKey);
+
+    if (!stored) {
+      return next(
+        new ErrorHandler(
+          "The verification code has expired. Please request a new one.",
+          400
+        )
+      );
+    }
+
+    const { otp: savedOtp, expires_at } = JSON.parse(stored);
+
+    if (Date.now() > expires_at) {
+      await redis.del(redisKey);
+      return next(
+        new ErrorHandler(
+          "The verification code has expired. Please request a new one.",
+          400
+        )
+      );
+    }
+
+    if (savedOtp !== otp) {
+      return next(
+        new ErrorHandler(
+          "The verification code you entered is incorrect.",
+          400
+        )
+      );
+    }
+
+    // OTP is valid → delete it
+    await redis.del(redisKey);
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(new_password, 12);
+    superAdmin.password_hash = hashedPassword;
+    superAdmin.password_change_history = {
+      changed_at: new Date().toISOString(),
+      ip_address: req.ip,
+    };
+
+    await superAdmin.save();
+
+    res.status(200).json({
+      success: true,
+      message:
+        "Your password has been updated successfully. You can now log in using your new password.",
+    });
+  }
+);

@@ -7,7 +7,8 @@ import {
   loginUsingEmailOtpVerify,
   loginUsingPhoneOtpRequest,
   loginUsingPhoneOtpVerify,
- 
+  forgotPasswordEmailOtpRequest,
+  forgotPasswordEmailOtpVerify,
 } from "../controllers/superAdmin.controller.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -52,6 +53,19 @@ SuperAdminRouter.post(
   loginUsingPhoneOtpVerify
 );
 
+/* ================= FORGOT PASSWORD ================= */
+
+// Step 1: Email → OTP
+SuperAdminRouter.post(
+  "/forgot-password/email-otp/request",
+  forgotPasswordEmailOtpRequest
+);
+
+// Step 2: Verify OTP + New Password
+SuperAdminRouter.post(
+  "/forgot-password/email-otp/verify",
+  forgotPasswordEmailOtpVerify
+);
 
 
 export default SuperAdminRouter;
