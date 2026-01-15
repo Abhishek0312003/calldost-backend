@@ -16,7 +16,7 @@ import Admin from './models/admin.model.js';
 import EducationComplaint from './models/educationComplaint.model.js';
 import HealthComplaint from './models/healthComplaint.model.js';
 import ApiKey from './models/apiKey.model.js';
-
+import BiharDistrict from './models/biharDistrict.model.js';
 const PORT = process.env.PORT || 4000;
 
 let httpServer;
@@ -41,6 +41,10 @@ const synchronizeDatabase = async () => {
   console.log('Health Complaint table synchronized (alter mode)');
 
   await ApiKey.sync({ alter: true });
+  console.log('API Key table synchronized (alter mode)');
+
+
+  await BiharDistrict.sync({ alter: true });
   console.log('API Key table synchronized (alter mode)');
 
   console.log('All database tables synchronized successfully');

@@ -9,7 +9,7 @@ import {
 } from "../controllers/apiKey.controller.js";
 import { superAdminOnly } from "../middlewares/superAdminOnly.middleware.js";
 import { isAuthenticated } from "../middlewares/isAuthenticated.middleware.js";
-
+import { adminOnly } from "../middlewares/adminOnly.middleware.js";
 
 const ApiKeyRouter = express.Router();
 
@@ -37,8 +37,7 @@ ApiKeyRouter.get(
   getAllApiKeys
 );
 
-/* ================= GET API KEY DETAILS ================= */
-/* GET /api/admin/api-keys/:api_key_id */
+
 ApiKeyRouter.get(
   "/get/:api_key_id",
   isAuthenticated,
@@ -46,8 +45,7 @@ ApiKeyRouter.get(
   getApiKeyById
 );
 
-/* ================= UPDATE API KEY ================= */
-/* PUT /api/admin/api-keys/:api_key_id */
+
 ApiKeyRouter.put(
   "/update/:api_key_id",
   isAuthenticated,
@@ -55,8 +53,6 @@ ApiKeyRouter.put(
   updateApiKey
 );
 
-/* ================= REVOKE / DELETE API KEY ================= */
-/* DELETE /api/admin/api-keys/:api_key_id */
 ApiKeyRouter.delete(
   "/control/:api_key_id",
   isAuthenticated,

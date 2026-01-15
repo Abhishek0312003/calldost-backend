@@ -9,7 +9,8 @@ import { errorMiddleware } from "./middlewares/error.middleware.js";
 import SuperAdminRouter from "./routes/superAdmin.routes.js";
 import ApiKeyRouter from "./routes/apiKey.routes.js";
 import sendEmail from "./utils/sendEmail.js";
-
+import BiharDistrictRouter from "./routes/biharDistrict.routes.js";
+import AdminRouter from "./routes/admin.routes.js";
 export const app = express();
 
 /* ============================================================
@@ -115,7 +116,8 @@ app.get("/test-email", async (req, res) => {
 ============================================================ */
 app.use("/api/v1/super-admin", SuperAdminRouter);
 app.use("/api/v1/admin/api-keys", ApiKeyRouter);
-
+app.use("/api/v1/admin/bihar-districts", BiharDistrictRouter);
+app.use('/api/v1/admin',AdminRouter)
 /* ============================================================
    GLOBAL ERROR HANDLING
 ============================================================ */
