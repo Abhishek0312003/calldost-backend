@@ -602,3 +602,43 @@ export const forgotPasswordEmailOtpVerify = catchAsyncError(
     });
   }
 );
+
+
+/* ============================================================
+   LOGOUT — INVALIDATE SESSION
+============================================================ */
+export const logoutSuperAdmin = catchAsyncError(
+  async (req, res, next) => {
+    const { public_user_id } = req.user || {};
+
+    if (!public_user_id) {
+      return next(
+        new ErrorHandler(
+          "Unable to log out. Please try again.",
+          400
+        )
+      );
+    }
+
+    // Remove session from Redis
+    await redis.del(`session:${public_user_id}`);
+
+    // Clear auth cookies
+    res.clearCookie("access_token", {
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: false,
+    });
+
+    res.clearCookie("refresh_token", {
+      httpOnly: true,
+      sameSite: "Lax",
+      secure: false,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "You have been logged out successfully.",
+    });
+  }
+);

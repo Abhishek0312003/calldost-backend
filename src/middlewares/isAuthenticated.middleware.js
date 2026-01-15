@@ -1,16 +1,17 @@
 import jwt from "jsonwebtoken";
-import { redis } from "../utils/redis.js";
+import { redis } from "../config/redis.js";
 import ErrorHandler from "../utils/errorhandler.js";
 import { catchAsyncError } from "../utils/catchAsyncError.js";
 
 export const isAuthenticated = catchAsyncError(async (req, res, next) => {
-  const token =
-    req.cookies?.access_token ||
-    req.headers.authorization?.split(" ")[1];
+  const authHeader = req.headers.authorization;
 
-  if (!token) {
-    return next(new ErrorHandler("Access token missing", 401));
+  // 🔒 HEADER REQUIRED
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return next(new ErrorHandler("Authorization header required", 401));
   }
+
+  const token = authHeader.split(" ")[1];
 
   let decoded;
   try {
@@ -33,8 +34,6 @@ export const isAuthenticated = catchAsyncError(async (req, res, next) => {
     );
   }
 
-  // session = { public_user_id, is_super_admin }
   req.user = JSON.parse(session);
-
   next();
 });

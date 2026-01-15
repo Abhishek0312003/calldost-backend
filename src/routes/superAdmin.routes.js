@@ -9,7 +9,10 @@ import {
   loginUsingPhoneOtpVerify,
   forgotPasswordEmailOtpRequest,
   forgotPasswordEmailOtpVerify,
+  logoutSuperAdmin,
 } from "../controllers/superAdmin.controller.js";
+
+import { isAuthenticated } from "../middlewares/isAuthenticated.middleware.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const SuperAdminRouter = express.Router();
@@ -67,5 +70,13 @@ SuperAdminRouter.post(
   forgotPasswordEmailOtpVerify
 );
 
+/* ================= LOGOUT ================= */
+
+// Authenticated logout
+SuperAdminRouter.post(
+  "/logout",
+  isAuthenticated,
+  logoutSuperAdmin
+);
 
 export default SuperAdminRouter;
