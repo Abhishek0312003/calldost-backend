@@ -28,11 +28,19 @@ let httpServer;
 const synchronizeDatabase = async () => {
   console.log('Starting database synchronization sequence');
 
+  // ===== PARENT TABLES FIRST =====
   await SuperAdmin.sync({ alter: true });
   console.log('Super Admin table synchronized (alter mode)');
 
+  await BiharDistrict.sync({ alter: true });
+  console.log('Bihar District table synchronized (alter mode)');
+
+  // ===== CHILD TABLES =====
   await Admin.sync({ alter: true });
   console.log('Admin table synchronized (alter mode)');
+
+  await ApiKey.sync({ alter: true });
+  console.log('API Key table synchronized (alter mode)');
 
   await EducationComplaint.sync({ alter: true });
   console.log('Education Complaint table synchronized (alter mode)');
@@ -40,15 +48,9 @@ const synchronizeDatabase = async () => {
   await HealthComplaint.sync({ alter: true });
   console.log('Health Complaint table synchronized (alter mode)');
 
-  await ApiKey.sync({ alter: true });
-  console.log('API Key table synchronized (alter mode)');
-
-
-  await BiharDistrict.sync({ alter: true });
-  console.log('API Key table synchronized (alter mode)');
-
   console.log('All database tables synchronized successfully');
 };
+
 
 /* ============================================================
    SERVER STARTUP
