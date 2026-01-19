@@ -5,14 +5,17 @@ import {
   getAllAdminsWithDistricts,
   getAdminByPublicUserId,
   getAdminDistrictComplaints,
-  adminUpdateComplaint, // ✅ ADD THIS
-} from "../controllers/admin.controller.js";
-
-import {
   adminLoginEmailOtpRequest,
   adminLoginEmailOtpVerify,
   logoutAdmin,
-  adminCloseComplaint
+
+  // ✅ EDUCATION
+  adminUpdateEducationComplaint,
+  adminCloseEducationComplaint,
+
+  // ✅ HEALTH
+  adminUpdateHealthComplaint,
+  adminCloseHealthComplaint,
 } from "../controllers/admin.controller.js";
 
 import { isAuthenticated } from "../middlewares/isAuthenticated.middleware.js";
@@ -22,7 +25,7 @@ import { adminOnly } from "../middlewares/adminOnly.middleware.js";
 const AdminRouter = express.Router();
 
 /* ============================================================
-   ADMIN AUTH ROUTES
+   ADMIN AUTH
 ============================================================ */
 
 AdminRouter.post("/login/request-otp", adminLoginEmailOtpRequest);
@@ -36,7 +39,7 @@ AdminRouter.post(
 );
 
 /* ============================================================
-   SUPER ADMIN ROUTES
+   SUPER ADMIN
 ============================================================ */
 
 AdminRouter.post(
@@ -61,13 +64,9 @@ AdminRouter.get(
 );
 
 /* ============================================================
-   ADMIN COMPLAINT ROUTES (DISTRICT SCOPED)
+   ADMIN – DISTRICT COMPLAINTS
 ============================================================ */
 
-/**
- * GET complaints of admin's district
- * GET /api/v1/admin/complaints
- */
 AdminRouter.get(
   "/complaints",
   isAuthenticated,
@@ -75,23 +74,40 @@ AdminRouter.get(
   getAdminDistrictComplaints
 );
 
-/**
- * UPDATE complaint (status, resolution, attachments)
- * PATCH /api/v1/admin/complaints/:complaint_number
- */
+/* ============================================================
+   EDUCATION COMPLAINT ADMIN ACTIONS
+============================================================ */
+
 AdminRouter.patch(
-  "/complaints/:complaint_number",
+  "/complaints/education/:complaint_number",
   isAuthenticated,
   adminOnly,
-  adminUpdateComplaint
+  adminUpdateEducationComplaint
 );
 
+AdminRouter.patch(
+  "/complaints/education/:complaint_number/close",
+  isAuthenticated,
+  adminOnly,
+  adminCloseEducationComplaint
+);
+
+/* ============================================================
+   HEALTH COMPLAINT ADMIN ACTIONS
+============================================================ */
 
 AdminRouter.patch(
-    "/complaints/:complaint_number/close",
-    isAuthenticated,
-    adminOnly,
-    adminCloseComplaint
-  );
+  "/complaints/health/:complaint_number",
+  isAuthenticated,
+  adminOnly,
+  adminUpdateHealthComplaint
+);
+
+AdminRouter.patch(
+  "/complaints/health/:complaint_number/close",
+  isAuthenticated,
+  adminOnly,
+  adminCloseHealthComplaint
+);
 
 export default AdminRouter;

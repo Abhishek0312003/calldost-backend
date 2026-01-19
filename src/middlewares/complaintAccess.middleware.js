@@ -1,5 +1,6 @@
 import { redis } from "../config/redis.js";
 import EducationComplaint from "../models/educationComplaint.model.js";
+import HealthComplaint from "../models/healthComplaint.model.js";
 import ErrorHandler from "../utils/errorhandler.js";
 import { catchAsyncError } from "../utils/catchAsyncError.js";
 
@@ -14,10 +15,21 @@ export const complaintAccessGuard = catchAsyncError(
       );
     }
 
-    // 🔍 Verify complaint exists
-    const complaint = await EducationComplaint.findOne({
+    /* =====================================================
+       FIND COMPLAINT (EDU OR HEALTH)
+    ===================================================== */
+    let complaint = await EducationComplaint.findOne({
       where: { complaint_number },
     });
+
+    let redisKeyPrefix = "complaint"; // education default
+
+    if (!complaint) {
+      complaint = await HealthComplaint.findOne({
+        where: { complaint_number },
+      });
+      redisKeyPrefix = "health:complaint";
+    }
 
     if (!complaint) {
       return next(
@@ -25,9 +37,11 @@ export const complaintAccessGuard = catchAsyncError(
       );
     }
 
-    // 🔐 Verify Redis token
+    /* =====================================================
+       VERIFY REDIS TOKEN
+    ===================================================== */
     const redisToken = await redis.get(
-      `complaint:access:${complaint_number}`
+      `${redisKeyPrefix}:access:${complaint_number}`
     );
 
     if (!redisToken || redisToken !== token) {
@@ -43,4 +57,3 @@ export const complaintAccessGuard = catchAsyncError(
     next();
   }
 );
-

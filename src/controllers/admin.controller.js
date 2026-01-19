@@ -553,14 +553,8 @@ export const adminLoginEmailOtpRequest = catchAsyncError(
     }
   );
 
-  export const adminUpdateComplaint = catchAsyncError(
+  export const adminUpdateEducationComplaint = catchAsyncError(
     async (req, res, next) => {
-      console.log("[ADMIN_UPDATE_COMPLAINT] Request received", {
-        complaint_number: req.params.complaint_number,
-        body: req.body,
-        admin: req.admin?.public_user_id,
-      });
-  
       const { complaint_number } = req.params;
       let { status, resolution_note, final_resolution_note } = req.body;
       const admin = req.admin;
@@ -572,13 +566,12 @@ export const adminLoginEmailOtpRequest = catchAsyncError(
         return next(new ErrorHandler("Complaint number is required", 400));
       }
   
-      const hasUpdate =
-        status ||
-        resolution_note ||
-        final_resolution_note ||
-        req.files?.length;
-  
-      if (!hasUpdate) {
+      if (
+        !status &&
+        !resolution_note &&
+        !final_resolution_note &&
+        !req.files?.length
+      ) {
         return next(new ErrorHandler("Nothing to update", 400));
       }
   
@@ -590,93 +583,53 @@ export const adminLoginEmailOtpRequest = catchAsyncError(
         return next(new ErrorHandler("Complaint not found", 404));
       }
   
-      console.log("[DB] Complaint fetched", {
-        current_status: complaint.current_status,
-        closed_at: complaint.resolution_details?.closed_at,
-      });
-  
-      /* ================= DISTRICT SECURITY ================= */
-  
+      /* ===== DISTRICT SECURITY ===== */
       const district = await BiharDistrict.findOne({
         where: { district_code_alpha: admin.district_code_alpha },
         attributes: ["district_name"],
       });
   
       if (!district || complaint.district !== district.district_name) {
-        return next(new ErrorHandler("Access denied for this complaint", 403));
+        return next(new ErrorHandler("Access denied", 403));
       }
   
-      /* ================= FINAL STATE CHECK ================= */
-  
-      const isHistoricallyClosed =
+      /* ===== FINAL STATE CHECK ===== */
+      const isClosed =
         complaint.current_status === "RESOLVED" ||
-        complaint.current_status === "CLOSED" ||
-        Boolean(complaint.resolution_details?.closed_at);
+        complaint.current_status === "CLOSED";
   
-      if (isHistoricallyClosed) {
-        // Only allowed action is explicit reopen
-        if (status === "IN_PROGRESS") {
-          console.log("[REOPEN] Complaint reopened by admin");
-  
-          complaint.current_status = "IN_PROGRESS";
-          complaint.complaint_end_at = null;
-  
-          // 🔥 CRITICAL: clear closure metadata
-          if (complaint.resolution_details) {
-            delete complaint.resolution_details.closed_at;
-            delete complaint.resolution_details.closed_by;
-            delete complaint.resolution_details.final_note;
-          }
-        } else {
-          return next(
-            new ErrorHandler(
-              "This complaint is already resolved or closed. Reopen it before making updates.",
-              409
-            )
-          );
-        }
+      if (isClosed && status !== "IN_PROGRESS") {
+        return next(
+          new ErrorHandler(
+            "Complaint already closed. Reopen before updating.",
+            409
+          )
+        );
       }
   
-      /* ================= STATUS UPDATE ================= */
-  
-      if (status && complaint.current_status !== status) {
-        const allowedStatuses = [
-          "PENDING",
-          "IN_PROGRESS",
-          "RESOLVED",
-          "REJECTED",
-        ];
-  
-        if (!allowedStatuses.includes(status)) {
-          return next(new ErrorHandler("Invalid complaint status", 400));
+      if (status) {
+        const allowed = ["PENDING", "IN_PROGRESS", "RESOLVED", "REJECTED"];
+        if (!allowed.includes(status)) {
+          return next(new ErrorHandler("Invalid status", 400));
         }
   
         complaint.current_status = status;
-  
-        if (status === "RESOLVED") {
-          complaint.complaint_end_at = new Date();
-        }
+        complaint.complaint_end_at =
+          status === "RESOLVED" ? new Date() : null;
       }
   
-      /* ================= RESOLUTION NOTES ================= */
-  
       if (resolution_note) {
-        const lastNote =
-          complaint.resolution_details?.timeline?.slice(-1)[0];
-  
-        if (lastNote?.note !== resolution_note) {
-          complaint.resolution_details = {
-            ...(complaint.resolution_details || {}),
-            timeline: [
-              ...(complaint.resolution_details?.timeline || []),
-              {
-                note: resolution_note,
-                by: admin.public_user_id,
-                at: new Date().toISOString(),
-              },
-            ],
-          };
-        }
+        complaint.resolution_details = {
+          ...(complaint.resolution_details || {}),
+          timeline: [
+            ...(complaint.resolution_details?.timeline || []),
+            {
+              note: resolution_note,
+              by: admin.public_user_id,
+              at: new Date().toISOString(),
+            },
+          ],
+        };
       }
   
       if (final_resolution_note) {
@@ -686,187 +639,64 @@ export const adminLoginEmailOtpRequest = catchAsyncError(
         };
       }
   
-      /* ================= ATTACHMENTS ================= */
-  
       if (req.files?.length) {
         const uploads = [];
-  
         for (const file of req.files) {
-          try {
-            const upload = await uploadBuffer(
-              file.buffer,
-              "education_complaints/admin"
-            );
-  
-            uploads.push({
-              url: upload.secure_url.replace(
-                "/upload/",
-                "/upload/f_auto,q_auto/"
-              ),
-              public_id: upload.public_id,
-              uploadedAt: new Date().toISOString(),
-              uploaded_by: admin.public_user_id,
-            });
-          } catch {}
+          const upload = await uploadBuffer(
+            file.buffer,
+            "education_complaints/admin"
+          );
+          uploads.push({
+            url: upload.secure_url.replace(
+              "/upload/",
+              "/upload/f_auto,q_auto/"
+            ),
+            public_id: upload.public_id,
+            uploaded_by: admin.public_user_id,
+            uploadedAt: new Date().toISOString(),
+          });
         }
-  
-        if (uploads.length) {
-          complaint.attachments = [
-            ...(complaint.attachments || []),
-            ...uploads,
-          ];
-        }
+        complaint.attachments = [...complaint.attachments, ...uploads];
       }
   
-      /* ================= AUDIT ================= */
-  
-      complaint.status_history = [
-        ...(complaint.status_history || []),
-        {
-          status: complaint.current_status,
-          at: new Date().toISOString(),
-          source: "ADMIN",
-          by: admin.public_user_id,
-        },
-      ];
+      complaint.status_history.push({
+        status: complaint.current_status,
+        source: "ADMIN",
+        by: admin.public_user_id,
+        at: new Date().toISOString(),
+      });
   
       await complaint.save();
-      console.log("[DB] Complaint updated successfully");
-  
-      /* ================= BACKGROUND NOTIFICATIONS ================= */
-  
-      const complainantName = complaint.complainant_name || "Citizen";
-  
-      if (complaint.complainant_email) {
-        sendEmail({
-          email: complaint.complainant_email,
-          subject: `Complaint ${complaint.complaint_number} Updated`,
-          template: "complaintStatusUpdate.ejs",
-          data: {
-            name: complainantName,
-            complaint_number: complaint.complaint_number,
-            status: complaint.current_status,
-            note: resolution_note || final_resolution_note || null,
-          },
-        }).catch(() => {});
-      }
-  
-      if (complaint.complainant_phone) {
-        fast2sms
-          .sendSuperAdminCreatedSMS(
-            String(complaint.complainant_phone),
-            complainantName
-          )
-          .catch(() => {});
-      }
-  
-      /* ================= RESPONSE ================= */
   
       res.status(200).json({
         success: true,
-        message: "Complaint updated successfully",
-        complaint: {
-          complaint_number: complaint.complaint_number,
-          current_status: complaint.current_status,
-          resolution_details: complaint.resolution_details,
-        },
+        message: "Education complaint updated",
       });
     }
   );
   
   
   
-  
-  
-  
 
-
-  // controllers/admin.complaints.controller.js
-
-  export const adminCloseComplaint = catchAsyncError(
+  export const adminCloseEducationComplaint = catchAsyncError(
     async (req, res, next) => {
-      console.log("[ADMIN_CLOSE_COMPLAINT] Request received", {
-        complaint_number: req.params.complaint_number,
-        body: req.body,
-        admin: req.admin?.public_user_id,
-      });
-  
       const { complaint_number } = req.params;
       const { final_status, final_resolution_note } = req.body;
       const admin = req.admin;
   
-      /* ================= BASIC VALIDATION ================= */
-  
-      if (!complaint_number) {
-        console.error("[VALIDATION] Missing complaint_number");
-        return next(new ErrorHandler("Complaint number is required", 400));
-      }
-  
-      if (!final_status) {
-        console.error("[VALIDATION] Missing final_status");
-        return next(new ErrorHandler("Final status is required", 400));
-      }
-  
-      const allowedFinalStatuses = ["RESOLVED", "CLOSED"];
-  
-      if (!allowedFinalStatuses.includes(final_status)) {
-        console.error("[VALIDATION] Invalid final_status", final_status);
+      if (!["RESOLVED", "CLOSED"].includes(final_status)) {
         return next(
           new ErrorHandler("Final status must be RESOLVED or CLOSED", 400)
         );
       }
-  
-      /* ================= FETCH COMPLAINT ================= */
   
       const complaint = await EducationComplaint.findOne({
         where: { complaint_number },
       });
   
       if (!complaint) {
-        console.error("[DB] Complaint not found", complaint_number);
         return next(new ErrorHandler("Complaint not found", 404));
       }
-  
-      console.log("[DB] Complaint fetched", {
-        id: complaint.complaint_id,
-        current_status: complaint.current_status,
-        complainant_email: complaint.complainant_email,
-        complainant_phone: complaint.complainant_phone,
-      });
-  
-      /* ================= DISTRICT SECURITY ================= */
-  
-      const district = await BiharDistrict.findOne({
-        where: { district_code_alpha: admin.district_code_alpha },
-        attributes: ["district_name"],
-      });
-  
-      if (!district || complaint.district !== district.district_name) {
-        console.error("[SECURITY] District mismatch", {
-          adminDistrict: district?.district_name,
-          complaintDistrict: complaint.district,
-        });
-        return next(
-          new ErrorHandler("Access denied for this complaint", 403)
-        );
-      }
-  
-      /* ================= ALREADY CLOSED CHECK ================= */
-  
-      if (
-        complaint.current_status === "RESOLVED" ||
-        complaint.current_status === "CLOSED"
-      ) {
-        console.error("[RULE] Complaint already closed or resolved");
-        return next(
-          new ErrorHandler(
-            "Complaint is already closed or resolved",
-            409
-          )
-        );
-      }
-  
-      /* ================= FINAL UPDATE ================= */
   
       complaint.current_status = final_status;
       complaint.complaint_end_at = new Date();
@@ -878,83 +708,148 @@ export const adminLoginEmailOtpRequest = catchAsyncError(
         closed_at: new Date().toISOString(),
       };
   
-      complaint.status_history = [
-        ...(complaint.status_history || []),
-        {
-          status: final_status,
-          at: new Date().toISOString(),
-          source: "ADMIN",
-          by: admin.public_user_id,
-        },
-      ];
-  
-      await complaint.save();
-      console.log("[DB] Complaint closed successfully");
-  
-      /* =====================================================
-         BACKGROUND EMAIL / SMS (NON-BLOCKING)
-      ===================================================== */
-  
-      const complainantName = complaint.complainant_name || "Citizen";
-      const smsMessage = `Your complaint ${complaint.complaint_number} has been ${final_status}.`;
-  
-      console.log("[NOTIFICATION] Triggering background notifications", {
-        email: complaint.complainant_email,
-        phone: complaint.complainant_phone,
+      complaint.status_history.push({
+        status: final_status,
+        source: "ADMIN",
+        by: admin.public_user_id,
+        at: new Date().toISOString(),
       });
   
-      // Email (fire-and-forget)
-      if (complaint.complainant_email) {
-        sendEmail({
-          email: complaint.complainant_email,
-          subject: `Complaint ${complaint.complaint_number} ${final_status}`,
-          template: "complaintStatusUpdate.ejs",
-          data: {
-            name: complainantName,
-            complaint_number: complaint.complaint_number,
-            status: final_status,
-            note: final_resolution_note || null,
-          },
-        })
-          .then(() =>
-            console.log("[EMAIL] Background email sent")
-          )
-          .catch((err) =>
-            console.error("[EMAIL] Background email failed", err?.message)
-          );
-      }
-  
-      // SMS (fire-and-forget)
-      if (complaint.complainant_phone) {
-        const phone = String(complaint.complainant_phone).trim();
-  
-        fast2sms
-          .sendSuperAdminCreatedSMS(phone, complainantName)
-          .then((resp) =>
-            console.log("[SMS] Background SMS response", resp)
-          )
-          .catch((err) =>
-            console.error("[SMS] Background SMS failed", err?.message)
-          );
-      }
-  
-      /* ================= RESPONSE (IMMEDIATE) ================= */
-  
-      console.log("[ADMIN_CLOSE_COMPLAINT] Response sent (notifications in background)");
+      await complaint.save();
   
       res.status(200).json({
         success: true,
-        message: `Complaint ${final_status.toLowerCase()} successfully`,
-        complaint: {
-          complaint_number: complaint.complaint_number,
-          current_status: complaint.current_status,
-          complaint_end_at: complaint.complaint_end_at,
-          resolution_details: complaint.resolution_details,
-        },
+        message: "Education complaint closed",
       });
     }
   );
   
+
+
+
+  export const adminCloseHealthComplaint = catchAsyncError(
+    async (req, res, next) => {
+      const { complaint_number } = req.params;
+      const { final_status, final_resolution_note } = req.body;
+      const admin = req.admin;
   
+      if (!["RESOLVED", "CLOSED"].includes(final_status)) {
+        return next(
+          new ErrorHandler("Final status must be RESOLVED or CLOSED", 400)
+        );
+      }
+  
+      const complaint = await HealthComplaint.findOne({
+        where: { complaint_number },
+      });
+  
+      if (!complaint) {
+        return next(new ErrorHandler("Complaint not found", 404));
+      }
+  
+      complaint.current_status = final_status;
+      complaint.complaint_end_at = new Date();
+  
+      complaint.resolution_details = {
+        ...(complaint.resolution_details || {}),
+        final_note: final_resolution_note || null,
+        closed_by: admin.public_user_id,
+        closed_at: new Date().toISOString(),
+      };
+  
+      complaint.status_history.push({
+        status: final_status,
+        source: "ADMIN",
+        by: admin.public_user_id,
+        at: new Date().toISOString(),
+      });
+  
+      await complaint.save();
+  
+      res.status(200).json({
+        success: true,
+        message: "Health complaint closed",
+      });
+    }
+  );
   
 
+
+  export const adminUpdateHealthComplaint = catchAsyncError(
+    async (req, res, next) => {
+      const { complaint_number } = req.params;
+      let { status, resolution_note, final_resolution_note } = req.body;
+      const admin = req.admin;
+  
+      const complaint = await HealthComplaint.findOne({
+        where: { complaint_number },
+      });
+  
+      if (!complaint) {
+        return next(new ErrorHandler("Complaint not found", 404));
+      }
+  
+      if (status) {
+        const allowed = ["PENDING", "IN_PROGRESS", "RESOLVED", "REJECTED"];
+        if (!allowed.includes(status)) {
+          return next(new ErrorHandler("Invalid status", 400));
+        }
+  
+        complaint.current_status = status;
+        complaint.complaint_end_at =
+          status === "RESOLVED" ? new Date() : null;
+      }
+  
+      if (resolution_note) {
+        complaint.resolution_details = {
+          ...(complaint.resolution_details || {}),
+          timeline: [
+            ...(complaint.resolution_details?.timeline || []),
+            {
+              note: resolution_note,
+              by: admin.public_user_id,
+              at: new Date().toISOString(),
+            },
+          ],
+        };
+      }
+  
+      if (final_resolution_note) {
+        complaint.resolution_details.final_note = final_resolution_note;
+      }
+  
+      if (req.files?.length) {
+        const uploads = [];
+        for (const file of req.files) {
+          const upload = await uploadBuffer(
+            file.buffer,
+            "health_complaints/admin"
+          );
+          uploads.push({
+            url: upload.secure_url.replace(
+              "/upload/",
+              "/upload/f_auto,q_auto/"
+            ),
+            uploaded_by: admin.public_user_id,
+            uploadedAt: new Date().toISOString(),
+          });
+        }
+        complaint.attachments.push(...uploads);
+      }
+  
+      complaint.status_history.push({
+        status: complaint.current_status,
+        source: "ADMIN",
+        by: admin.public_user_id,
+        at: new Date().toISOString(),
+      });
+  
+      await complaint.save();
+  
+      res.status(200).json({
+        success: true,
+        message: "Health complaint updated",
+      });
+    }
+  );
+  

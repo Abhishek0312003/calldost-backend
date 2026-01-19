@@ -3,22 +3,40 @@ const attachmentsInput = document.getElementById("attachments");
 const notesContainer = document.getElementById("attachmentNotes");
 const existingAttachmentsBox = document.getElementById("existingAttachments");
 
+/* ============================================================
+   EXTRACT COMPLAINT NUMBER & TOKEN
+============================================================ */
 const pathParts = window.location.pathname.split("/");
 const complaintNumber = pathParts[pathParts.length - 1];
 const token = new URLSearchParams(window.location.search).get("token");
 
-if (!complaintNumber || !token) {
+/* ============================================================
+   DETERMINE COMPLAINT TYPE
+============================================================ */
+function getComplaintType(number) {
+  if (number.startsWith("HLT-")) return "health";
+  if (number.startsWith("EDU-")) return "education";
+  return null;
+}
+
+const complaintType = getComplaintType(complaintNumber);
+
+if (!complaintNumber || !token || !complaintType) {
   UI.snackbar("Invalid or missing access link.", "error");
 } else {
   verifyAccess();
 }
 
+/* ============================================================
+   VERIFY ACCESS
+============================================================ */
 async function verifyAccess() {
   UI.showLoader(true);
   try {
     const res = await fetch(
-      `/api/v1/complaint/access/${complaintNumber}?token=${token}`
+      `/api/v1/complaints/${complaintType}/access/${complaintNumber}?token=${token}`
     );
+
     const data = await res.json();
 
     if (!res.ok || !data.success) {
@@ -44,6 +62,9 @@ async function verifyAccess() {
   }
 }
 
+/* ============================================================
+   RENDER EXISTING ATTACHMENTS
+============================================================ */
 function renderExistingAttachments(attachments) {
   existingAttachmentsBox.innerHTML = "";
 
@@ -66,12 +87,13 @@ function renderExistingAttachments(attachments) {
   });
 }
 
-/* ---------- New uploads notes ---------- */
-
+/* ============================================================
+   ATTACHMENT NOTES
+============================================================ */
 attachmentsInput.addEventListener("change", () => {
   notesContainer.innerHTML = "";
 
-  Array.from(attachmentsInput.files).forEach((file, i) => {
+  Array.from(attachmentsInput.files).forEach((file) => {
     const div = document.createElement("div");
     div.style.marginTop = "10px";
     div.innerHTML = `
@@ -82,8 +104,9 @@ attachmentsInput.addEventListener("change", () => {
   });
 });
 
-/* ---------- Submit ---------- */
-
+/* ============================================================
+   SUBMIT UPDATE
+============================================================ */
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   UI.showLoader(true);
@@ -107,9 +130,10 @@ form.addEventListener("submit", async (e) => {
 
   try {
     const res = await fetch(
-      `/api/v1/complaint/update/${complaintNumber}?token=${token}`,
+      `/api/v1/complaints/${complaintType}/update/${complaintNumber}?token=${token}`,
       { method: "PATCH", body: formData }
     );
+
     const data = await res.json();
 
     if (!res.ok || !data.success) {
@@ -120,7 +144,7 @@ form.addEventListener("submit", async (e) => {
     UI.snackbar("Complaint updated successfully.", "success");
     attachmentsInput.value = "";
     notesContainer.innerHTML = "";
-    verifyAccess(); // reload data
+    verifyAccess(); // reload updated data
   } catch {
     UI.snackbar("Failed to update complaint.", "error");
   } finally {
