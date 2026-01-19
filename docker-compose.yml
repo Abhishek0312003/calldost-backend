@@ -21,15 +21,13 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
+   
 
   redis:
     image: redis:7
     container_name: calldost-redis
     restart: always
-    ports:
-      - "6379:6379"
+ 
 
 volumes:
   postgres_data:
