@@ -1,23 +1,11 @@
 import Admin from "./admin.model.js";
 import BiharDistrict from "./biharDistrict.model.js";
 import SuperAdmin from "./superAdmin.model.js";
-import EducationComplaint from "./biharDistrict.model.js";
+import EducationComplaint from "./educationComplaint.model.js";
+
 /* ============================================================
    ASSOCIATIONS
 ============================================================ */
-
-// Admin ↔ District
-Admin.belongsTo(BiharDistrict, {
-  foreignKey: "district_code_alpha",
-  targetKey: "district_code_alpha",
-  as: "district",
-});
-
-BiharDistrict.hasOne(Admin, {
-  foreignKey: "district_code_alpha",
-  sourceKey: "district_code_alpha",
-  as: "admin",
-});
 
 // Admin ↔ Super Admin (creator)
 Admin.belongsTo(SuperAdmin, {
@@ -32,20 +20,19 @@ SuperAdmin.hasMany(Admin, {
   as: "created_admins",
 });
 
-
-
-
+// ✅ FIXED: renamed association alias
 EducationComplaint.belongsTo(BiharDistrict, {
-    foreignKey: "district_code_alpha",
-    targetKey: "district_code_alpha",
-    as: "district",
-  });
-  
-  BiharDistrict.hasMany(EducationComplaint, {
-    foreignKey: "district_code_alpha",
-    sourceKey: "district_code_alpha",
-    as: "education_complaints",
-  });
+  foreignKey: "district_code_alpha",
+  targetKey: "district_code_alpha",
+  as: "district_info",
+});
+
+BiharDistrict.hasMany(EducationComplaint, {
+  foreignKey: "district_code_alpha",
+  sourceKey: "district_code_alpha",
+  as: "education_complaints",
+});
+
 export {
   Admin,
   BiharDistrict,
