@@ -1,0 +1,35 @@
+name: Deploy Caldost Backend
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: root
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www
+            if [ ! -d "calldost-backend/app" ]; then
+              mkdir -p calldost-backend
+              cd calldost-backend
+              git clone https://github.com/Abhishek0312003/calldost-backend.git app
+            fi
+
+            cd calldost-backend/app
+            git pull origin main
+
+            docker compose down
+            docker compose build
+            docker compose up -d
+

@@ -3,7 +3,7 @@ version: "3.9"
 services:
   backend:
     build: .
-    container_name: calldost_backend
+    container_name: calldost-backend
     restart: always
     env_file:
       - .env
@@ -14,8 +14,8 @@ services:
       - redis
 
   postgres:
-    image: postgres:15
-    container_name: calldost_postgres
+    image: postgres:16
+    container_name: calldost-postgres
     restart: always
     environment:
       POSTGRES_DB: calldost
@@ -24,11 +24,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
   redis:
     image: redis:7
-    container_name: calldost_redis
+    container_name: calldost-redis
     restart: always
     ports:
       - "6379:6379"
