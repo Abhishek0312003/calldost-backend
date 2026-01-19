@@ -1,8 +1,6 @@
-version: "3.9"
-
 services:
   backend:
-    build: .
+    build: ./app
     container_name: calldost-backend
     restart: always
     env_file:
