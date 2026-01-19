@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CALDOST Complaint Status Update</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #2c3e50;
+    }
+
+    .email-wrapper {
+      width: 100%;
+      padding: 30px 0;
+    }
+
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .email-header {
+      background-color: #1f2a44;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .email-header h1 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 24px;
+      letter-spacing: 0.5px;
+    }
+
+    .email-body {
+      padding: 30px;
+    }
+
+    .email-body h2 {
+      margin-top: 0;
+      font-size: 20px;
+      color: #1f2a44;
+    }
+
+    .email-body p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+
+    .status-box {
+      margin: 25px 0;
+      padding: 18px;
+      background-color: #f1f4f8;
+      border-left: 4px solid #1f2a44;
+    }
+
+    .status-label {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .status-value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #1f2a44;
+    }
+
+    .note-box {
+      margin-top: 15px;
+      padding: 14px;
+      background-color: #ffffff;
+      border: 1px solid #e5e7eb;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: #e5e7eb;
+      margin: 25px 0;
+    }
+
+    .email-footer {
+      background-color: #f4f6f8;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .email-footer strong {
+      color: #1f2a44;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-wrapper">
+    <div class="email-container">
+
+      <!-- HEADER -->
+      <div class="email-header">
+        <h1>CALDOST</h1>
+      </div>
+
+      <!-- BODY -->
+      <div class="email-body">
+        <h2>Hello <%= name %>,</h2>
+
+        <p>
+          This is to inform you that the status of your complaint has been updated.
+          Please find the latest details below.
+        </p>
+
+        <div class="status-box">
+          <div class="status-label">Complaint Number</div>
+          <div class="status-value"><%= complaint_number %></div>
+
+          <div class="divider"></div>
+
+          <div class="status-label">Current Status</div>
+          <div class="status-value"><%= status %></div>
+
+          <% if (note) { %>
+            <div class="note-box">
+              <strong>Resolution Note:</strong><br />
+              <%= note %>
+            </div>
+          <% } %>
+        </div>
+
+        <p>
+          If further action is required, our team will reach out to you.
+          Thank you for bringing this matter to our attention.
+        </p>
+
+        <p>
+          Regards,<br />
+          <strong>CALDOST Team</strong><br />
+          <span>www.caldost.com</span>
+        </p>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="email-footer">
+        <p>
+          This is an automated email from <strong>CALDOST</strong>.  
+          Please do not reply to this message.
+        </p>
+        <p>
+          © <%= new Date().getFullYear() %> CALDOST. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

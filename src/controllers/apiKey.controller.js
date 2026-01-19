@@ -38,17 +38,27 @@ export const createApiKey = catchAsyncError(async (req, res, next) => {
  * Super Admin only
  */
 export const getAllApiKeys = catchAsyncError(async (req, res) => {
-  const keys = await ApiKey.findAll({
-    order: [["createdAt", "DESC"]],
-    attributes: { exclude: ["api_key_encrypted"] },
+    const keys = await ApiKey.findAll({
+      order: [["createdAt", "DESC"]],
+    });
+  
+    const decryptedKeys = keys.map((key) => ({
+      api_key_id: key.api_key_id,
+      key_name: key.key_name,
+      api_key: decryptApiKey(key.api_key_encrypted),
+      permissions: key.permissions,
+      usage_count: key.usage_count,
+      is_active: key.is_active,
+      createdAt: key.createdAt,
+    }));
+  
+    res.status(200).json({
+      success: true,
+      count: decryptedKeys.length,
+      keys: decryptedKeys,
+    });
   });
-
-  res.status(200).json({
-    success: true,
-    count: keys.length,
-    keys,
-  });
-});
+  
 
 /**
  * GET SINGLE API KEY (WITH DECRYPTION)

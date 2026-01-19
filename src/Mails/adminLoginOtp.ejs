@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CALDOST Login Verification</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #2c3e50;
+    }
+
+    .email-wrapper {
+      width: 100%;
+      padding: 30px 0;
+    }
+
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .email-header {
+      background-color: #1f2a44;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .email-header h1 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 24px;
+      letter-spacing: 0.5px;
+    }
+
+    .email-body {
+      padding: 30px;
+    }
+
+    .email-body h2 {
+      margin-top: 0;
+      font-size: 20px;
+      color: #1f2a44;
+    }
+
+    .email-body p {
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+
+    .otp-box {
+      margin: 25px 0;
+      padding: 18px;
+      background-color: #f1f4f8;
+      border-left: 4px solid #1f2a44;
+      text-align: center;
+    }
+
+    .otp-code {
+      font-size: 28px;
+      letter-spacing: 6px;
+      font-weight: bold;
+      color: #1f2a44;
+      margin-top: 10px;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: #e5e7eb;
+      margin: 25px 0;
+    }
+
+    .email-footer {
+      background-color: #f4f6f8;
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .email-footer strong {
+      color: #1f2a44;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="email-wrapper">
+    <div class="email-container">
+
+      <!-- HEADER -->
+      <div class="email-header">
+        <h1>CALDOST</h1>
+      </div>
+
+      <!-- BODY -->
+      <div class="email-body">
+        <h2>Hello <%= name %>,</h2>
+
+        <p>
+          We received a request to sign in to your <strong>CALDOST</strong>
+          account. To continue, please use the one-time password (OTP) below.
+        </p>
+
+        <div class="otp-box">
+          <p>Your login verification code is:</p>
+          <div class="otp-code"><%= otp %></div>
+          <p style="font-size: 13px; margin-top: 10px;">
+            This code is valid for <strong>5 minutes</strong>.
+          </p>
+        </div>
+
+        <p>
+          For your security, please do not share this OTP with anyone.
+          CALDOST will never ask you for this code.
+        </p>
+
+        <div class="divider"></div>
+
+        <p>
+          If you did not attempt to log in, you can safely ignore this email.
+          Your account remains secure.
+        </p>
+
+        <p>
+          Regards,<br />
+          <strong>CALDOST Team</strong><br />
+          <span>www.caldost.com</span>
+        </p>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="email-footer">
+        <p>
+          This is an automated email from <strong>CALDOST</strong>.
+          Please do not reply to this message.
+        </p>
+        <p>
+          © <%= new Date().getFullYear() %> CALDOST. All rights reserved.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

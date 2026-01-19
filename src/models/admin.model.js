@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js";
-
+import BiharDistrict from "./biharDistrict.model.js";
 const Admin = sequelize.define(
   "admins",
   {
@@ -87,3 +87,6 @@ const Admin = sequelize.define(
 );
 
 export default Admin;
+
+
+

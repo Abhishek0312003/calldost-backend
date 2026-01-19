@@ -56,3 +56,4 @@ const BiharDistrict = sequelize.define(
 );
 
 export default BiharDistrict;
+

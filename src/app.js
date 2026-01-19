@@ -4,19 +4,47 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import morgan from "morgan";
-
+import path from "path";
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 import SuperAdminRouter from "./routes/superAdmin.routes.js";
 import ApiKeyRouter from "./routes/apiKey.routes.js";
 import sendEmail from "./utils/sendEmail.js";
 import BiharDistrictRouter from "./routes/biharDistrict.routes.js";
 import AdminRouter from "./routes/admin.routes.js";
+import EducationComplaintRouter from "./routes/educationComplaint.routes.js";
+import { complaintAccessGuard } from "./middlewares/complaintAccess.middleware.js";
+
+import "./models/index.js";
+import EducationComplaint from "./models/educationComplaint.model.js";
+
+
 export const app = express();
 
 /* ============================================================
    SECURITY MIDDLEWARES
 ============================================================ */
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: [
+          "'self'",
+          "data:",
+          "https://res.cloudinary.com"
+        ],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+      },
+    },
+  })
+);
+
 
 /* ============================================================
    RATE LIMITING
@@ -35,13 +63,32 @@ app.use(limiter);
    CORS CONFIGURATION
 ============================================================ */
 const allowedOrigins = [
+  // Main sites
   "https://vedvivah.com",
   "https://www.vedvivah.com",
   "https://admin.vedvivah.com",
   "https://recommend.vedvivah.com",
+
+  // ✅ BACKEND DOMAIN (VERY IMPORTANT)
+  "https://api.caldost.in",   // <-- replace with your actual backend domain
+
+  // Local development
   "http://localhost:5173",
-  "http://localhost:3001",
+  "http://localhost:4000",
 ];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow same-origin, server-side, curl, etc.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error("CORS policy: Origin not allowed"));
+    },
+    credentials: true,
+  })
+);
 
 app.use(
   cors({
@@ -62,6 +109,12 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
+
+
+app.use(
+  "/complaint",
+  express.static(path.join(process.cwd(), "src/public/complaint"))
+);
 
 /* ============================================================
    REQUEST LOGGER
@@ -114,10 +167,24 @@ app.get("/test-email", async (req, res) => {
 /* ============================================================
    ROUTES
 ============================================================ */
+
+app.get(
+  "/complaint/:complaint_number",
+  complaintAccessGuard,
+  (req, res) => {
+    res.sendFile(
+      path.join(
+        process.cwd(),
+        "src/public/complaint/index.html"
+      )
+    );
+  }
+);
 app.use("/api/v1/super-admin", SuperAdminRouter);
 app.use("/api/v1/admin/api-keys", ApiKeyRouter);
 app.use("/api/v1/admin/bihar-districts", BiharDistrictRouter);
 app.use('/api/v1/admin',AdminRouter)
+app.use('/api/v1/complaint',EducationComplaintRouter)
 /* ============================================================
    GLOBAL ERROR HANDLING
 ============================================================ */
