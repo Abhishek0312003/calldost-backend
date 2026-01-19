@@ -11,10 +11,10 @@ const BiharDistrict = sequelize.define(
     },
 
     district_code_alpha: {
-      type: DataTypes.STRING(5),
-      allowNull: false,
-      comment: "Alphabetical district code (e.g. AW, AR)",
-    },
+        type: DataTypes.STRING(5),
+        allowNull: false,
+        unique: true, // 🔥 REQUIRED
+      },
 
     district_code_numeric: {
       type: DataTypes.INTEGER,
