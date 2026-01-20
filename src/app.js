@@ -104,7 +104,7 @@ app.use(
    REQUEST LOGGER
 ============================================================ */
 app.use(
-  morgan(":method :url :status :res[content-length] - :response-time ms")
+  morgan(":method :URL :status :res[content-length] - :response-time ms")
 );
 
 /* ============================================================
