@@ -19,17 +19,14 @@ jobs:
           username: root
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /var/www
-            if [ ! -d "calldost-backend/app" ]; then
-              mkdir -p calldost-backend
-              cd calldost-backend
-              git clone https://github.com/Abhishek0312003/calldost-backend.git app
+            cd /root
+
+            if [ ! -d "calldost-backend" ]; then
+              git clone https://github.com/Abhishek0312003/calldost-backend.git
             fi
 
-            cd calldost-backend/app
+            cd /root/calldost-backend
             git pull origin main
 
             docker compose down
-            docker compose build
-            docker compose up -d
-
+            docker compose up -d --build
